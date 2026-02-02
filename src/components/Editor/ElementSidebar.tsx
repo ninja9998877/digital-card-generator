@@ -12,10 +12,16 @@ import {
   Layout,
   Palette,
   MapPin,
+  QrCodeIcon,
+  Wand2,
 } from 'lucide-react'
+import QRCodeGenerator from '@/components/Editor/QRCodeGenerator'
+import AIRecommendation from '@/components/Editor/AIRecommendation'
 
 export default function ElementSidebar() {
   const [activeTab, setActiveTab] = useState<'add' | 'style'>('add')
+  const [showQRCodeGenerator, setShowQRCodeGenerator] = useState(false)
+  const [showAIRecommendation, setShowAIRecommendation] = useState(false)
   const { config, addElement, setBackgroundColor, setBackgroundImage } =
     useCardStore()
 
@@ -151,6 +157,17 @@ export default function ElementSidebar() {
             </div>
             <span className="text-sm font-medium text-gray-900">社交媒体</span>
           </button>
+
+          {/* 二维码生成按钮 */}
+          <button
+            onClick={() => setShowQRCodeGenerator(true)}
+            className="w-full flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-purple-50 hover:border-purple-300 transition-colors"
+          >
+            <div className="flex-shrink-0 w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+              <QrCodeIcon size={20} />
+            </div>
+            <span className="text-sm font-medium text-gray-900">生成二维码</span>
+          </button>
         </div>
       )}
 
@@ -195,6 +212,16 @@ export default function ElementSidebar() {
             />
           </div>
         </div>
+      )}
+
+      {/* 二维码生成器对话框 */}
+      {showQRCodeGenerator && (
+        <QRCodeGenerator onClose={() => setShowQRCodeGenerator(false)} />
+      )}
+
+      {/* AI智能推荐对话框 */}
+      {showAIRecommendation && (
+        <AIRecommendation onClose={() => setShowAIRecommendation(false)} />
       )}
     </div>
   )

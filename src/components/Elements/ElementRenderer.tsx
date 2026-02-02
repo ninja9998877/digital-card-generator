@@ -32,24 +32,17 @@ export default function ElementRenderer({
     cursor: 'move',
   }
 
-  const selectedStyle = isSelected
-    ? {
-        outline: '2px solid #0ea5e9',
-        outlineOffset: '2px',
-      }
-    : {}
-
   switch (element.type) {
     case 'text':
       return (
         <div
           style={{
             ...commonStyle,
-            ...selectedStyle,
             fontSize: element.fontSize,
             fontWeight: element.fontWeight,
             color: element.color,
             textAlign: element.textAlign,
+            userSelect: 'none',
           }}
           onMouseDown={onMouseDown}
         >
@@ -62,7 +55,6 @@ export default function ElementRenderer({
         <div
           style={{
             ...commonStyle,
-            ...selectedStyle,
             borderRadius: `${element.borderRadius}px`,
             overflow: 'hidden',
           }}
@@ -82,11 +74,12 @@ export default function ElementRenderer({
         <button
           style={{
             ...commonStyle,
-            ...selectedStyle,
             backgroundColor: element.backgroundColor,
             color: element.textColor,
             borderRadius: `${element.borderRadius}px`,
             cursor: 'pointer',
+            border: 'none',
+            userSelect: 'none',
           }}
           onMouseDown={onMouseDown}
         >
@@ -100,7 +93,6 @@ export default function ElementRenderer({
         <div
           style={{
             ...commonStyle,
-            ...selectedStyle,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -117,7 +109,6 @@ export default function ElementRenderer({
         <div
           style={{
             ...commonStyle,
-            ...selectedStyle,
             borderTop: `${element.thickness}px solid ${element.color}`,
           }}
           onMouseDown={onMouseDown}
@@ -129,7 +120,6 @@ export default function ElementRenderer({
         <div
           style={{
             ...commonStyle,
-            ...selectedStyle,
             display: 'flex',
             alignItems: 'center',
             justifyContent:
@@ -139,6 +129,7 @@ export default function ElementRenderer({
                 ? 'flex-end'
                 : 'center',
             gap: `${element.iconSpacing}px`,
+            userSelect: 'none',
           }}
           onMouseDown={onMouseDown}
         >

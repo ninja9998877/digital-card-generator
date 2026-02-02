@@ -3,16 +3,17 @@
 import { useState } from 'react'
 import { templates, getTemplatesByCategory } from '@/lib/templates'
 import { useCardStore } from '@/store/cardStore'
+import TemplateCard from '@/components/Templates/TemplateCard'
 
 type Category = 'all' | 'business' | 'creative' | 'minimal' | 'personal' | 'artistic'
 
-const categories: { id: Category; name: string }[] = [
-  { id: 'all', name: '全部' },
-  { id: 'business', name: '商务' },
-  { id: 'creative', name: '创意' },
-  { id: 'minimal', name: '极简' },
-  { id: 'personal', name: '个人' },
-  { id: 'artistic', name: '艺术' },
+const categories: { id: Category; name: string; count: number }[] = [
+  { id: 'all', name: '全部', count: templates.length },
+  { id: 'business', name: '商务', count: templates.filter(t => t.category === 'business').length },
+  { id: 'creative', name: '创意', count: templates.filter(t => t.category === 'creative').length },
+  { id: 'minimal', name: '极简', count: templates.filter(t => t.category === 'minimal').length },
+  { id: 'personal', name: '个人', count: templates.filter(t => t.category === 'personal').length },
+  { id: 'artistic', name: '艺术', count: templates.filter(t => t.category === 'artistic').length },
 ]
 
 interface TemplateSelectorProps {
@@ -22,6 +23,7 @@ interface TemplateSelectorProps {
 
 export default function TemplateSelector({ onSelect, onClose }: TemplateSelectorProps) {
   const [selectedCategory, setSelectedCategory] = useState<Category>('all')
+  const { config } = useCardStore()
   const loadTemplate = useCardStore((state) => state.loadTemplate)
 
   const filteredTemplates =
@@ -39,7 +41,12 @@ export default function TemplateSelector({ onSelect, onClose }: TemplateSelector
     <div className="p-4">
       {/* 关闭按钮 */}
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-semibold text-gray-900">选择模板</h2>
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900">选择模板</h2>
+          <p className="text-sm text-gray-500 mt-1">
+            共 {filteredTemplates.length} 个模板
+          </p>
+        </div>
         <button
           onClick={onClose}
           className="p-1 hover:bg-gray-100 rounded"
@@ -51,18 +58,23 @@ export default function TemplateSelector({ onSelect, onClose }: TemplateSelector
       </div>
 
       {/* 分类标签 */}
-      <div className="flex flex-wrap gap-2 mb-4">
+      <div className="flex flex-wrap gap-2 mb-6">
         {categories.map((cat) => (
           <button
             key={cat.id}
             onClick={() => setSelectedCategory(cat.id)}
-            className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
+            className={`px-4 py-2 text-sm rounded-full transition-colors flex items-center gap-2 ${
               selectedCategory === cat.id
                 ? 'bg-blue-500 text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
             {cat.name}
+            <span className={`text-xs ${
+              selectedCategory === cat.id ? 'bg-blue-600' : 'bg-gray-200'
+            } px-2 py-0.5 rounded-full`}>
+              {cat.count}
+            </span>
           </button>
         ))}
       </div>
@@ -70,36 +82,12 @@ export default function TemplateSelector({ onSelect, onClose }: TemplateSelector
       {/* 模板网格 */}
       <div className="grid grid-cols-2 gap-4">
         {filteredTemplates.map((template) => (
-          <div
+          <TemplateCard
             key={template.id}
-            onClick={() => handleSelectTemplate(template.id)}
-            className="cursor-pointer group"
-          >
-            {/* 模板预览 */}
-            <div className="aspect-[2/3] bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg overflow-hidden border-2 border-transparent group-hover:border-blue-500 transition-colors">
-              <div
-                className="w-full h-full p-4"
-                style={{ backgroundColor: template.config.backgroundColor }}
-              >
-                {/* 简化的预览 */}
-                <div className="text-center">
-                  <div className="w-16 h-16 mx-auto mb-2 bg-gray-300 rounded-full"></div>
-                  <div className="h-4 bg-gray-300 rounded mb-2 w-20 mx-auto"></div>
-                  <div className="h-3 bg-gray-200 rounded mb-1 w-16 mx-auto"></div>
-                  <div className="h-3 bg-gray-200 rounded mb-4 w-12 mx-auto"></div>
-                  <div className="h-px bg-gray-200 mb-4"></div>
-                  <div className="h-2 bg-gray-200 rounded mb-1 w-24 mx-auto"></div>
-                  <div className="h-2 bg-gray-200 rounded mb-1 w-28 mx-auto"></div>
-                  <div className="h-2 bg-gray-200 rounded w-20 mx-auto"></div>
-                </div>
-              </div>
-            </div>
-
-            {/* 模板名称 */}
-            <div className="mt-2 text-center">
-              <p className="text-sm font-medium text-gray-900">{template.name}</p>
-            </div>
-          </div>
+            template={template}
+            onSelect={() => handleSelectTemplate(template.id)}
+            isSelected={config?.id === template.id}
+          />
         ))}
       </div>
 
