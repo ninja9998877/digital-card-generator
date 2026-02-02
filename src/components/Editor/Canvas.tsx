@@ -5,9 +5,11 @@ import ElementRenderer from '@/components/Elements/ElementRenderer'
 import SelectionBox from '@/components/Editor/SelectionBox'
 import { useRef, useState } from 'react'
 import { forwardRef, useImperativeHandle } from 'react'
+import { useExport } from '@/hooks/useExport'
+import { Loader2 } from 'lucide-react'
 
 export interface CanvasRef {
-  exportCard: (format: 'png' | 'pdf' | 'svg') => Promise<boolean>
+  canvasElement: HTMLDivElement | null
 }
 
 type ResizeHandle =
@@ -23,6 +25,7 @@ type ResizeHandle =
 const Canvas = forwardRef<CanvasRef>((props, ref) => {
   const { config, selectedElementId, setSelectedElementId, moveElement, resizeElement } =
     useCardStore()
+  const { isExporting, exportAsPNG, exportAsPDF, exportAsSVG } = useExport(null)
   const [isDragging, setIsDragging] = useState(false)
   const [isResizing, setIsResizing] = useState(false)
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
@@ -34,6 +37,24 @@ const Canvas = forwardRef<CanvasRef>((props, ref) => {
   useImperativeHandle(ref, () => ({
     get canvasElement() {
       return canvasRef.current
+    },
+    async exportCard(format: 'png' | 'pdf' | 'svg') {
+      if (!config || !canvasRef.current) return false
+
+      let success = false
+      switch (format) {
+        case 'png':
+          success = (await exportAsPNG()).success
+          break
+        case 'pdf':
+          success = (await exportAsPDF()).success
+          break
+        case 'svg':
+          success = (await exportAsSVG()).success
+          break
+      }
+
+      return success
     },
   }), [])
 
@@ -127,41 +148,54 @@ const Canvas = forwardRef<CanvasRef>((props, ref) => {
   }
 
   return (
-    <div
-      ref={canvasRef}
-      className="relative shadow-2xl"
-      style={{
-        width: config.width,
-        height: config.height,
-        backgroundColor: config.backgroundColor,
-        backgroundImage: config.backgroundImage
-          ? `url(${config.backgroundImage})`
-          : undefined,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-      }}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
-      onClick={handleCanvasClick}
-    >
-      {/* 渲染所有元素 */}
-      {config.elements
-        .sort((a, b) => a.zIndex - b.zIndex)
-        .map((element) => (
-          <div key={element.id} className="relative">
-            <ElementRenderer
-              element={element}
-              isSelected={element.id === selectedElementId}
-              onMouseDown={(e) => handleMouseDown(e, element.id)}
-            />
-            <SelectionBox
-              element={element}
-              isSelected={element.id === selectedElementId}
-              onMouseDown={handleResizeMouseDown}
-            />
+    <div className="relative">
+      {/* 画布 */}
+      <div
+        ref={canvasRef}
+        className="relative shadow-2xl"
+        style={{
+          width: config.width,
+          height: config.height,
+          backgroundColor: config.backgroundColor,
+          backgroundImage: config.backgroundImage
+            ? `url(${config.backgroundImage})`
+            : undefined,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onClick={handleCanvasClick}
+      >
+        {/* 渲染所有元素 */}
+        {config.elements
+          .sort((a, b) => a.zIndex - b.zIndex)
+          .map((element) => (
+            <div key={element.id} className="relative">
+              <ElementRenderer
+                element={element}
+                isSelected={element.id === selectedElementId}
+                onMouseDown={(e) => handleMouseDown(e, element.id)}
+              />
+              <SelectionBox
+                element={element}
+                isSelected={element.id === selectedElementId}
+                onMouseDown={handleResizeMouseDown}
+              />
+            </div>
+          ))}
+      </div>
+
+      {/* 加载遮罩 */}
+      {isExporting && (
+        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-lg">
+          <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg shadow-xl">
+            <Loader2 className="animate-spin" size={20} className="text-blue-500" />
+            <span className="text-sm font-medium">正在导出...</span>
           </div>
-        ))}
+        </div>
+      )}
     </div>
   )
 })

@@ -2,18 +2,42 @@
 
 import { useEffect, useState } from 'react'
 import { useAnalyticsStore } from '@/store/analyticsStore'
-import { BarChart, LineChart, TrendingUp, Eye, MousePointer, Download, RefreshCw, Play, Square } from 'lucide-react'
+import { useUserStore } from '@/store/userStore'
+import { BarChart, LineChart, TrendingUp, Eye, MousePointer, Download, RefreshCw, Play, Square, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react'
 
 interface AnalyticsPanelProps {
   onClose: () => void
 }
 
 export default function AnalyticsPanel({ onClose }: AnalyticsPanelProps) {
-  const { currentData, historyData, abTests, startABTest, stopABTest, getABTestData, calculateWinner, clearHistory } =
+  const { currentData, historyData, abTests, error, isLoading } =
     useAnalyticsStore()
-
+  const { plans, subscribe, cancelSubscription } = useUserStore()
   const [selectedTest, setSelectedTest] = useState<string | null>(null)
-  const [isRecording, setIsRecording] = useState(false)
+
+  const handleSubscribe = async (planId: string) => {
+    try {
+      await subscribe(planId)
+      alert(`成功订阅${plans.find(p => p.id === planId)?.name}！`)
+      onClose()
+    } catch (err) {
+      // 错误已经在 store 中处理
+    }
+  }
+
+  const handleCancelSubscription = async () => {
+    if (!confirm('确定要取消订阅吗？取消后，您将在当前计费周期结束后降级到免费版。')) {
+      return
+    }
+
+    try {
+      await cancelSubscription()
+      alert('订阅已取消')
+      onClose()
+    } catch (err) {
+      // 错误已经在 store 中处理
+    }
+  }
 
   // 模拟实时数据更新（演示用）
   useEffect(() => {
@@ -26,11 +50,25 @@ export default function AnalyticsPanel({ onClose }: AnalyticsPanelProps) {
     }
   }, [currentData])
 
+  const getABTestData = (testId: string) => {
+    const { getABTestData } = useAnalyticsStore.getState()
+    return getABTestData(testId)
+  }
+
+  const calculateTestWinner = (testId: string) => {
+    const { calculateWinner } = useAnalyticsStore.getState()
+    return calculateWinner(testId)
+  }
+
+  const calculateAnnualPrice = (monthlyPrice: number) => {
+    return Math.floor(monthlyPrice * 12 * 0.8) // 年付8折
+  }
+
   const testData = selectedTest ? getABTestData(selectedTest) : []
   const winnerId = selectedTest ? testData.find(t => t.isWinner)?.variantId : null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl h-[90vh] flex flex-col">
         {/* 标题栏 */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
@@ -41,6 +79,7 @@ export default function AnalyticsPanel({ onClose }: AnalyticsPanelProps) {
           <div className="flex items-center gap-3">
             <button
               onClick={() => {
+                const { clearHistory } = useAnalyticsStore.getState()
                 clearHistory()
                 alert('历史数据已清除')
               }}
@@ -60,6 +99,14 @@ export default function AnalyticsPanel({ onClose }: AnalyticsPanelProps) {
           </div>
         </div>
 
+        {/* 错误提示 */}
+        {error && (
+          <div className="mx-6 mb-4 p-4 bg-red-50 text-red-600 rounded-lg flex items-start gap-2">
+            <AlertTriangle size={20} className="mt-0.5" />
+            <p className="text-sm">{error}</p>
+          </div>
+        )}
+
         {/* 主内容区 */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {/* 实时数据概览 */}
@@ -72,35 +119,39 @@ export default function AnalyticsPanel({ onClose }: AnalyticsPanelProps) {
               <MetricCard
                 label="总浏览量"
                 value={currentData?.views || 0}
-                icon={Eye}
                 color="blue"
                 change="+12.5%"
                 changePositive={true}
-              />
+              >
+                <Eye size={20} />
+              </MetricCard>
               <MetricCard
                 label="总点击数"
                 value={currentData?.clicks || 0}
-                icon={MousePointer}
                 color="green"
                 change="+8.3%"
                 changePositive={true}
-              />
+              >
+                <MousePointer size={20} />
+              </MetricCard>
               <MetricCard
                 label="转化数"
                 value={currentData?.conversions || 0}
-                icon={TrendingUp}
                 color="purple"
                 change="+5.2%"
                 changePositive={true}
-              />
+              >
+                <TrendingUp size={20} />
+              </MetricCard>
               <MetricCard
                 label="平均停留"
                 value={currentData?.avgTime ? `${currentData.avgTime}s` : '0s'}
-                icon={BarChart}
                 color="orange"
                 change="+2.1%"
                 changePositive={true}
-              />
+              >
+                <BarChart size={20} />
+              </MetricCard>
             </div>
           </div>
 
@@ -138,6 +189,7 @@ export default function AnalyticsPanel({ onClose }: AnalyticsPanelProps) {
                 <button
                   onClick={() => {
                     const testId = `test-${Date.now()}`
+                    const { startABTest } = useAnalyticsStore.getState()
                     startABTest(testId)
                     setSelectedTest(testId)
                     alert('新的A/B测试已创建')
@@ -209,7 +261,7 @@ export default function AnalyticsPanel({ onClose }: AnalyticsPanelProps) {
               <div className="mt-4 space-y-3">
                 <button
                   onClick={() => {
-                    const winnerId = calculateWinner(selectedTest)
+                    const winnerId = calculateTestWinner(selectedTest)
                     alert(`测试已完成！获胜者：${winnerId}`)
                   }}
                   className="w-full px-4 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 font-medium"
@@ -218,6 +270,7 @@ export default function AnalyticsPanel({ onClose }: AnalyticsPanelProps) {
                 </button>
                 <button
                   onClick={() => {
+                    const { stopABTest } = useAnalyticsStore.getState()
                     stopABTest()
                     setSelectedTest(null)
                   }}
@@ -295,21 +348,16 @@ export default function AnalyticsPanel({ onClose }: AnalyticsPanelProps) {
 }
 
 // 指标卡片组件
-function MetricCard({
-  label,
-  value,
-  icon: Icon,
-  color,
-  change,
-  changePositive,
-}: {
+interface MetricCardProps {
   label: string
   value: number | string
-  icon: React.ComponentType<{ size?: number; className?: string }>
   color: string
   change: string
   changePositive: boolean
-}) {
+  children: React.ReactNode
+}
+
+function MetricCard({ label, value, color, change, changePositive, children }: MetricCardProps) {
   const colorClasses = {
     blue: 'bg-blue-50 text-blue-600',
     green: 'bg-green-50 text-green-600',
@@ -321,7 +369,7 @@ function MetricCard({
     <div className="bg-gray-50 rounded-lg p-4">
       <div className="flex items-center justify-between mb-2">
         <div className={`p-2 rounded-lg ${colorClasses[color as keyof typeof colorClasses]}`}>
-          <Icon size={20} />
+          {children}
         </div>
         <span className={`text-sm font-medium ${changePositive ? 'text-green-600' : 'text-red-600'}`}>
           {change}
@@ -334,15 +382,13 @@ function MetricCard({
 }
 
 // 详细指标卡片
-function DetailMetricCard({
-  label,
-  value,
-  description,
-}: {
+interface DetailMetricCardProps {
   label: string
   value: string
   description: string
-}) {
+}
+
+function DetailMetricCard({ label, value, description }: DetailMetricCardProps) {
   return (
     <div className="bg-gray-50 rounded-lg p-4">
       <p className="text-xs text-gray-500 mb-1">{label}</p>

@@ -5,101 +5,142 @@ import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
 import { CardConfig } from '@/types/card'
 
-export function useExport(canvasElement: HTMLDivElement | null) {
+export interface ExportOptions {
+  scale?: number
+  useCORS?: boolean
+  backgroundColor?: string
+}
+
+export interface ExportResult {
+  success: boolean
+  error?: string
+}
+
+export interface UseExportReturn {
+  isExporting: boolean
+  error: string | null
+  exportAsPNG: () => Promise<ExportResult>
+  exportAsPDF: () => Promise<ExportResult>
+  exportAsSVG: () => Promise<ExportResult>
+}
+
+export function useExport(canvasElement: HTMLDivElement | null): UseExportReturn {
   const [isExporting, setIsExporting] = React.useState(false)
+  const [error, setError] = React.useState<string | null>(null)
 
-  const exportToPNG = async (config: CardConfig): Promise<string> => {
-    if (!canvasElement) throw new Error('Canvas not found')
+  const exportAsPNG = async (): Promise<ExportResult> => {
+    if (!canvasElement) return { success: false, error: 'Canvas not found' }
 
-    const canvas = await html2canvas(canvasElement, {
-      scale: 2, // 高清
-      useCORS: true,
-      backgroundColor: config.backgroundColor,
-    })
+    try {
+      setIsExporting(true)
+      setError(null)
 
-    return canvas.toDataURL('image/png')
-  }
+      const canvas = await html2canvas(canvasElement, {
+        scale: 2, // 高清
+        useCORS: true,
+        backgroundColor: '#ffffff',
+      })
 
-  const exportToPDF = async (config: CardConfig): Promise<Blob> => {
-    const pngDataUrl = await exportToPNG(config)
-    const pdf = new jsPDF({
-      orientation: config.width > config.height ? 'landscape' : 'portrait',
-      unit: 'px',
-      format: [config.width, config.height],
-    })
+      const dataUrl = canvas.toDataURL('image/png')
+      
+      const link = document.createElement('a')
+      link.href = dataUrl
+      link.download = `digital-card-${Date.now()}.png`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
 
-    pdf.addImage(pngDataUrl, 'PNG', 0, 0, config.width, config.height)
-    return pdf.output('blob')
-  }
-
-  const exportToSVG = async (config: CardConfig): Promise<string> => {
-    if (!canvasElement) throw new Error('Canvas not found')
-
-    // 使用 html2canvas 获取 HTML 内容
-    const canvas = await html2canvas(canvasElement, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: config.backgroundColor,
-    })
-
-    // 简单的 SVG 包装
-    const svgData = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="${config.width}" height="${config.height}">
-        <foreignObject width="100%" height="100%">
-          <div xmlns="http://www.w3.org/1999/xhtml">
-            <img src="${canvas.toDataURL('image/png')}" width="${config.width}" height="${config.height}" />
-          </div>
-        </foreignObject>
-      </svg>
-    `
-
-    return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)))
-  }
-
-  const downloadFile = (data: string | Blob, filename: string) => {
-    const link = document.createElement('a')
-    link.href = typeof data === 'string' ? data : URL.createObjectURL(data)
-    link.download = filename
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-
-    if (typeof data !== 'string') {
-      URL.revokeObjectURL(link.href)
+      return { success: true }
+    } catch (err) {
+      console.error('Export to PNG failed:', err)
+      const errorMsg = err instanceof Error ? err.message : '导出PNG失败'
+      setError(errorMsg)
+      return { success: false, error: errorMsg }
+    } finally {
+      setIsExporting(false)
     }
   }
 
-  const exportCard = async (
-    config: CardConfig,
-    format: 'png' | 'pdf' | 'svg'
-  ) => {
-    setIsExporting(true)
+  const exportAsPDF = async (): Promise<ExportResult> => {
+    if (!canvasElement) return { success: false, error: 'Canvas not found' }
 
     try {
-      const timestamp = new Date().toISOString().slice(0, 10)
-      const filename = `digital-card-${timestamp}`
+      setIsExporting(true)
+      setError(null)
 
-      switch (format) {
-        case 'png':
-          const pngData = await exportToPNG(config)
-          downloadFile(pngData, `${filename}.png`)
-          break
+      const canvas = await html2canvas(canvasElement, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+      })
 
-        case 'pdf':
-          const pdfBlob = await exportToPDF(config)
-          downloadFile(pdfBlob, `${filename}.pdf`)
-          break
+      const dataUrl = canvas.toDataURL('image/png')
+      
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'px',
+        format: [800, 600],
+      })
 
-        case 'svg':
-          const svgData = await exportToSVG(config)
-          downloadFile(svgData, `${filename}.svg`)
-          break
-      }
+      pdf.addImage(dataUrl, 'PNG', 0, 0, 800, 600)
+      pdf.save(`digital-card-${Date.now()}.pdf`)
 
-      return true
-    } catch (error) {
-      console.error('Export failed:', error)
-      throw error
+      return { success: true }
+    } catch (err) {
+      console.error('Export to PDF failed:', err)
+      const errorMsg = err instanceof Error ? err.message : '导出PDF失败'
+      setError(errorMsg)
+      return { success: false, error: errorMsg }
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  const exportAsSVG = async (): Promise<ExportResult> => {
+    if (!canvasElement) return { success: false, error: 'Canvas not found' }
+
+    try {
+      setIsExporting(true)
+      setError(null)
+
+      // 使用 html2canvas 获取 HTML 内容
+      const canvas = await html2canvas(canvasElement, {
+        scale: 1,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+      })
+
+      // 创建 SVG 包装
+      const width = canvasElement.offsetWidth
+      const height = canvasElement.offsetHeight
+
+      const svgData = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
+          <foreignObject width="100%" height="100%">
+            <div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%">
+              <img src="${canvas.toDataURL('image/png')}" width="${width}" height="${height}" />
+            </div>
+          </foreignObject>
+        </svg>
+      `
+
+      // 转换为 base64
+      const base64Data = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)))
+
+      // 下载
+      const link = document.createElement('a')
+      link.href = base64Data
+      link.download = `digital-card-${Date.now()}.svg`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+
+      return { success: true }
+    } catch (err) {
+      console.error('Export to SVG failed:', err)
+      const errorMsg = err instanceof Error ? err.message : '导出SVG失败'
+      setError(errorMsg)
+      return { success: false, error: errorMsg }
     } finally {
       setIsExporting(false)
     }
@@ -107,6 +148,9 @@ export function useExport(canvasElement: HTMLDivElement | null) {
 
   return {
     isExporting,
-    exportCard,
+    error,
+    exportAsPNG,
+    exportAsPDF,
+    exportAsSVG,
   }
 }

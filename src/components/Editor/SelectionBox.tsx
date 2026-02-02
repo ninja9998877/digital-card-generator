@@ -4,7 +4,7 @@ import React from 'react'
 import { CardElement } from '@/types/card'
 import { X } from 'lucide-react'
 
-interface SelectionBoxProps {
+export interface SelectionBoxProps {
   element: CardElement
   isSelected: boolean
   onMouseDown?: (e: React.MouseEvent, handle: string) => void
@@ -37,12 +37,12 @@ export default function SelectionBox({ element, isSelected, onMouseDown }: Selec
         onMouseDown={(e) => onMouseDown?.(e, 'ne')}
       />
       <div
-        className="absolute w-2 h-2 bg-white border-2 border-blue-500 cursor-nesw-resize pointer-events-auto -bottom-1 -right-1"
+        className="absolute w-2 h-2 bg-white border-2 border-blue-500 cursor-swse-resize pointer-events-auto -bottom-1 -right-1"
         style={{ width: handleSize, height: handleSize }}
         onMouseDown={(e) => onMouseDown?.(e, 'se')}
       />
       <div
-        className="absolute w-2 h-2 bg-white border-2 border-blue-500 cursor-nwse-resize pointer-events-auto -bottom-1 -left-1"
+        className="absolute w-2 h-2 bg-white border-2 border-blue-500 cursor-swnw-resize pointer-events-auto -bottom-1 -left-1"
         style={{ width: handleSize, height: handleSize }}
         onMouseDown={(e) => onMouseDown?.(e, 'sw')}
       />
@@ -64,7 +64,7 @@ export default function SelectionBox({ element, isSelected, onMouseDown }: Selec
         onMouseDown={(e) => onMouseDown?.(e, 's')}
       />
       <div
-        className="absolute w-2 h-2 bg-white border-2 border-blue-500 cursor-w-resize pointer-events-auto top-1/2 -translate-y-1/2 -left-1"
+        className="absolute w-2 h-2 bg-white border-2 border-blue-500 cursor-w-resize pointer-events-auto bottom-1/2 -translate-y-1/2 -left-1"
         style={{ width: handleSize, height: handleSize }}
         onMouseDown={(e) => onMouseDown?.(e, 'w')}
       />

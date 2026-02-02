@@ -10,11 +10,10 @@ import { useState } from 'react'
 
 interface ToolbarProps {
   onShowTemplates: () => void
-  onShowAnalytics: () => void
   config: CardConfig | null
 }
 
-export default function Toolbar({ onShowTemplates, onShowAnalytics, config }: ToolbarProps) {
+export default function Toolbar({ onShowTemplates, config }: ToolbarProps) {
   const { undo, redo, canUndo, canRedo } = useCardStore()
   const { user, isAuthenticated, showAuthModal, showSubscriptionModal, setShowAuthModal, setShowSubscriptionModal } =
     useUser()
@@ -75,16 +74,6 @@ export default function Toolbar({ onShowTemplates, onShowAnalytics, config }: To
             title="重做 (Ctrl+Y)"
           >
             <Redo size={20} className={canRedo() ? 'text-gray-700' : 'text-gray-300'} />
-          </button>
-
-          <div className="h-6 w-px bg-gray-300 mx-2" />
-
-          <button
-            onClick={onShowAnalytics}
-            className="p-2 rounded-lg hover:bg-purple-100 transition-colors"
-            title="数据分析"
-          >
-            <BarChart size={20} className="text-purple-500" />
           </button>
 
           <button

@@ -3,7 +3,7 @@
 import { useToast } from '@/contexts/ToastContext'
 import { X, CheckCircle, AlertCircle, Info, AlertTriangle } from 'lucide-react'
 
-export default function Toast() {
+export function Toast() {
   const { toasts, dismissToast } = useToast()
 
   const getIcon = (type: string) => {
@@ -64,3 +64,5 @@ export default function Toast() {
     </div>
   )
 }
+
+export default Toast

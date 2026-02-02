@@ -30,6 +30,10 @@ export interface AnalyticsStore {
   historyData: AnalyticsData[]
   historyMaxSize: number
 
+  // 加载和错误状态
+  isLoading: boolean
+  error: string | null
+
   // 操作方法
   setCurrentData: (data: AnalyticsData) => void
   recordView: () => void
@@ -56,6 +60,8 @@ export const useAnalyticsStore = create<AnalyticsStore>((set, get) => ({
   abTests: [],
   historyData: [],
   historyMaxSize: 30,
+  isLoading: false,
+  error: null,
 
   setCurrentData: (data) => set({ currentData: data }),
 
